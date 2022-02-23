@@ -1,0 +1,35 @@
+def ramsey(qubit, wait_time, shots=10_000):
+
+    p = Program(
+        "DECLARE ro BIT",
+        f"RESET",
+        f"RX(pi/2) {qubit}",
+        f"DELAY {qubit} {wait_time}e-9",
+        f"RX(pi/2) {qubit}",
+        f"MEASURE {qubit} ro"
+    ).wrap_in_numshots_loop(shots)
+        
+    return p
+    
+# runtime parameters
+qubit = 0
+shots = 10_000
+qc = get_qc('Aspen-11')
+
+# initialize loop
+times = np.linspace(0,100000,50)
+results = collections.defaultdict(list)
+
+for wait_time in times:
+
+    # get quil program and compile it
+    prog = ramsey(qubit, wait_time, shots)
+    exe = qc.compiler.native_quil_to_executable(prog)
+    
+    # run the program
+    result = qc.run(exe).readout_data.get('ro')
+    
+    # analysis
+    probability = np.sum(result) / shots
+    results['Probability'].append(probability)
+    
